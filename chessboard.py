@@ -209,8 +209,7 @@ class ChessBoard:
         )
 
         return stats
-    
-    def cast_pieces(self,num):
+    def get_type(self, piece_num):
         pawns=[i for i in range(8)]
         pawns.extend([i for i in range(16,24)]),
         pieces=[
@@ -220,19 +219,56 @@ class ChessBoard:
                 [12,13,28,29],
                 [14,30],
                 [15,31]]
-        if(num==-1):
+        if(piece_num==-1):
+            return None
+        elif(piece_num in pieces[0]):
+            return ChessBoard.PAWN
+        elif(piece_num in pieces[1]):
+            return ChessBoard.ROOK
+        elif(piece_num in pieces[2]):
+            return ChessBoard.KNIGHT
+        elif(piece_num in pieces[3]):
+            return ChessBoard.BISHOP
+        elif(piece_num in pieces[4]):
+            return ChessBoard.QUEEN
+        elif(piece_num in pieces[5]):
+            return ChessBoard.KING
+    
+    def get_color(self, piece_num):
+        # TODO: add promotion stuff here if you change number or change piece_num cast for that game
+        if(piece_num<0):
+            return ""
+        if(piece_num < 16):
+            return "w"
+        elif(piece_num <32):
+            return "b"
+    def is_pawn_in_start(self, piece_id):
+        if(self.get_type(piece_id) != ChessBoard.PAWN):
+            raise RuntimeError("pawn_in_start() is only for pawns")
+        square= self.pieceSquare[piece_id]
+        if self.pieceColor[piece_id] == ChessBoard.WHITE and 8 <= square <= 15:
+            return True
+
+        # Black pawns start on rank 7 (squares 48..55)
+        if self.pieceColor[piece_id] == ChessBoard.BLACK and 48 <= square <= 55:
+            return True
+        return False
+
+        
+    def cast_pieces(self,piece_num):
+        if(self.get_type(piece_num) ==-1):
             return "X"
-        elif(num in pieces[0]):
+        elif(self.get_type(piece_num) == ChessBoard.PAWN):
             return "P"
-        elif(num in pieces[1]):
+        elif(self.get_type(piece_num) == ChessBoard.ROOK):
             return "R"
-        elif(num in pieces[2]):
+        elif(self.get_type(piece_num) == ChessBoard.KNIGHT):
             return "N"
-        elif(num in pieces[3]):
+        elif(self.get_type(piece_num) == ChessBoard.BISHOP):
             return "B"
-        elif(num in pieces[4]):
+        elif(self.get_type(piece_num) == ChessBoard.QUEEN):
             return "Q"
-        elif(num in pieces[5]):
+        elif(self.get_type(piece_num) == ChessBoard.KING):
             return "K"
     def showBoard(self):
         cpt= 0
@@ -243,3 +279,36 @@ class ChessBoard:
             if(cpt % 8 == 0):
                 print(f"{line}")
                 line=""
+    def get_legal_moves(self, piece):
+        allowed_moves=[]
+        square=self.pieceSquare[piece]
+        if(self.get_type(piece)== ChessBoard.PAWN ):
+            if(self.get_color(piece)=="w"):
+                if(square+7 <64 and self.get_color(self.squarePiece[square+7])== "b"):
+                    allowed_moves.append(square + 7)
+                if(square + 9 < 64 and self.get_color(self.squarePiece[square+9])== "b"):
+                    allowed_moves.append(square + 9)
+                if(square + 8 < 64):
+                    allowed_moves.append(square + 8) 
+                if(self.is_pawn_in_start(piece) and square + 16 < 64):
+                    allowed_moves.append(square + 16)
+            elif(self.get_color(piece)=="b"):    
+                if(square - 7 >= 0 and self.get_color(self.squarePiece[square-7])== "w"):
+                    print
+                    allowed_moves.append(square - 7)
+                if(square - 9 >= 0 and self.get_color(self.squarePiece[square-9])== "w"):
+                    allowed_moves.append(square - 9)
+                if(square - 8 >= 0):
+                    allowed_moves.append(square - 8) 
+                if(self.is_pawn_in_start(piece) and square - 16 >= 0):
+                    allowed_moves.append(square - 16)
+        elif(self.get_type(piece)== ChessBoard.ROOK):
+            allowed_moves.extend([i for i in range(square // 8 * 8, min((square//8 + 1 ) * 8 ,64))])
+            allowed_moves.extend([i for i in range(square % 8, 64, 8 )])
+        # elif(self.get_type(piece)== ChessBoard.KNIGHT):
+        # elif(self.get_type(piece)== ChessBoard.BISHOP):
+        # elif(self.get_type(piece)== ChessBoard.QUEEN):
+        # elif(self.get_type(piece)== ChessBoard.KING):
+        return allowed_moves
+                
+
