@@ -302,7 +302,33 @@ class ChessBoard:
                     allowed_moves.append(square - 8) 
                     if(square - 16 >= 0 and self.is_pawn_in_start(piece) and self.squarePiece[square - 16] == -1):
                         allowed_moves.append(square - 16)
+        
         elif(self.get_type(piece)== ChessBoard.ROOK):
+            cpt=square
+            while(cpt % 8 != 0):
+                if(self.squarePiece[cpt]== -1):
+                    allowed_moves.append(cpt)
+                if(cpt != square and self.get_color(self.squarePiece[cpt])== self.get_color(piece)):
+                    break
+                if(self.get_color(self.squarePiece[cpt])!= self.get_color(piece)):
+                cpt-=1
+            
+            cpt=square
+            while(cpt % 8 != 0):
+                allowed_moves.append(cpt)
+                cpt+=1
+            
+            cpt=square
+            while(cpt < 64):
+                allowed_moves.append(cpt)
+                cpt+=8
+            
+            cpt=square
+            while(cpt >= 0):
+                allowed_moves.append(cpt)
+                cpt-=8
+            allowed_moves= list(set(allowed_moves)).remove(square)
+                
             allowed_moves.extend([i for i in range(square // 8 * 8, min((square//8 + 1 ) * 8 ,64))])
             allowed_moves.extend([i for i in range(square % 8, 64, 8 )])
         elif(self.get_type(piece)== ChessBoard.KNIGHT):
