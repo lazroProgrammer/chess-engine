@@ -302,35 +302,62 @@ class ChessBoard:
                     allowed_moves.append(square - 8) 
                     if(square - 16 >= 0 and self.is_pawn_in_start(piece) and self.squarePiece[square - 16] == -1):
                         allowed_moves.append(square - 16)
-        
-        elif(self.get_type(piece)== ChessBoard.ROOK):
-            cpt=square
-            while(cpt % 8 != 0):
-                if(self.squarePiece[cpt]== -1):
-                    allowed_moves.append(cpt)
-                if(cpt != square and self.get_color(self.squarePiece[cpt])== self.get_color(piece)):
-                    break
-                if(self.get_color(self.squarePiece[cpt])!= self.get_color(piece)):
-                cpt-=1
-            
-            cpt=square
-            while(cpt % 8 != 0):
-                allowed_moves.append(cpt)
-                cpt+=1
-            
-            cpt=square
-            while(cpt < 64):
-                allowed_moves.append(cpt)
-                cpt+=8
-            
-            cpt=square
-            while(cpt >= 0):
-                allowed_moves.append(cpt)
-                cpt-=8
-            allowed_moves= list(set(allowed_moves)).remove(square)
                 
-            allowed_moves.extend([i for i in range(square // 8 * 8, min((square//8 + 1 ) * 8 ,64))])
-            allowed_moves.extend([i for i in range(square % 8, 64, 8 )])
+        elif(self.get_type(piece)== ChessBoard.ROOK):
+
+            color = self.get_color(piece)
+
+            # -----------------
+            # LEFT (file -1)
+            # -----------------
+            cpt = square - 1
+            while cpt >= 0 and cpt // 8 == square // 8:
+                if self.squarePiece[cpt] == -1:
+                    allowed_moves.append(cpt)
+                else:
+                    if self.get_color(self.squarePiece[cpt]) != color:
+                        allowed_moves.append(cpt)
+                    break
+                cpt -= 1
+
+            # -----------------
+            # RIGHT (file +1)
+            # -----------------
+            cpt = square + 1
+            while cpt < 64 and cpt // 8 == square // 8:
+                if self.squarePiece[cpt] == -1:
+                    allowed_moves.append(cpt)
+                else:
+                    if self.get_color(self.squarePiece[cpt]) != color:
+                        allowed_moves.append(cpt)
+                    break
+                cpt += 1
+
+            # -----------------
+            # UP (rank +1)
+            # -----------------
+            cpt = square + 8
+            while cpt < 64:
+                if self.squarePiece[cpt] == -1:
+                    allowed_moves.append(cpt)
+                else:
+                    if self.get_color(self.squarePiece[cpt]) != color:
+                        allowed_moves.append(cpt)
+                    break
+                cpt += 8
+
+            # -----------------
+            # DOWN (rank -1)
+            # -----------------
+            cpt = square - 8
+            while cpt >= 0:
+                if self.squarePiece[cpt] == -1:
+                    allowed_moves.append(cpt)
+                else:
+                    if self.get_color(self.squarePiece[cpt]) != color:
+                        allowed_moves.append(cpt)
+                    break
+                cpt -= 8
         elif(self.get_type(piece)== ChessBoard.KNIGHT):
             moves_delta=[(1,6), (1,10), (2,17), (2,15)]
 
