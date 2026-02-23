@@ -368,7 +368,33 @@ class ChessBoard:
                     allowed_moves.append(square + i)
         # elif(self.get_type(piece)== ChessBoard.BISHOP):
         # elif(self.get_type(piece)== ChessBoard.QUEEN):
-        # elif(self.get_type(piece)== ChessBoard.KING):
+        elif self.get_type(piece) == ChessBoard.KING:
+
+            square = self.pieceSquare[piece]
+            color = self.get_color(piece)
+
+            row = square // 8
+            col = square % 8
+
+            king_offsets = [
+                (-1, -1), (-1, 0), (-1, 1),
+                ( 0, -1),          ( 0, 1),
+                ( 1, -1), ( 1, 0), ( 1, 1)
+            ]
+
+            for dr, dc in king_offsets:
+                new_row = row + dr
+                new_col = col + dc
+
+                if 0 <= new_row < 8 and 0 <= new_col < 8:
+                    target = new_row * 8 + new_col
+                    target_piece = self.squarePiece[target]
+
+                    if target_piece == -1:
+                        allowed_moves.append(target)
+
+                    elif self.get_color(target_piece) != color:
+                        allowed_moves.append(target)
         return allowed_moves
                 
 
