@@ -288,27 +288,36 @@ class ChessBoard:
                     allowed_moves.append(square + 7)
                 if(square + 9 < 64 and self.get_color(self.squarePiece[square+9])== "b"):
                     allowed_moves.append(square + 9)
-                if(square + 8 < 64):
+                if(square + 8 < 64 and  self.squarePiece[square + 8] == -1):
                     allowed_moves.append(square + 8) 
-                if(self.is_pawn_in_start(piece) and square + 16 < 64):
-                    allowed_moves.append(square + 16)
+                    if(self.is_pawn_in_start(piece) and square + 16 < 64  and self.squarePiece[square + 16] == -1):
+                        allowed_moves.append(square + 16)
             elif(self.get_color(piece)=="b"):    
                 if(square - 7 >= 0 and self.get_color(self.squarePiece[square-7])== "w"):
                     print
                     allowed_moves.append(square - 7)
                 if(square - 9 >= 0 and self.get_color(self.squarePiece[square-9])== "w"):
                     allowed_moves.append(square - 9)
-                if(square - 8 >= 0):
+                if(square - 8 >= 0 and self.squarePiece[square - 8] == -1):
                     allowed_moves.append(square - 8) 
-                if(self.is_pawn_in_start(piece) and square - 16 >= 0):
-                    allowed_moves.append(square - 16)
+                    if(square - 16 >= 0 and self.is_pawn_in_start(piece) and self.squarePiece[square - 16] == -1):
+                        allowed_moves.append(square - 16)
         elif(self.get_type(piece)== ChessBoard.ROOK):
             allowed_moves.extend([i for i in range(square // 8 * 8, min((square//8 + 1 ) * 8 ,64))])
             allowed_moves.extend([i for i in range(square % 8, 64, 8 )])
-        # elif(self.get_type(piece)== ChessBoard.KNIGHT):
+        elif(self.get_type(piece)== ChessBoard.KNIGHT):
+            moves_delta=[(1,6), (1,10), (2,17), (2,15)]
+
+            for (a,i) in moves_delta:
+                if( square - i >= 0 and self.squarePiece[square -i] == -1 and square // 8 - a == (square - i)//8):
+                    allowed_moves.append(square - i)
+                if( square + i < 64 and self.squarePiece[square +i] == -1 and square // 8 + a == (square + i)//8):
+                    allowed_moves.append(square + i)
         # elif(self.get_type(piece)== ChessBoard.BISHOP):
         # elif(self.get_type(piece)== ChessBoard.QUEEN):
         # elif(self.get_type(piece)== ChessBoard.KING):
         return allowed_moves
+                
+
                 
 
