@@ -309,9 +309,9 @@ class ChessBoard:
             moves_delta=[(1,6), (1,10), (2,17), (2,15)]
 
             for (a,i) in moves_delta:
-                if( square - i >= 0 and self.squarePiece[square -i] == -1 and square // 8 - a == (square - i)//8):
+                if( square - i >= 0 and self.get_color(self.squarePiece[square -i]) != self.get_color(piece) and square // 8 - a == (square - i)//8):
                     allowed_moves.append(square - i)
-                if( square + i < 64 and self.squarePiece[square +i] == -1 and square // 8 + a == (square + i)//8):
+                if( square + i < 64 and self.get_color(self.squarePiece[square +i]) !=  self.get_color(piece) and square // 8 + a == (square + i)//8):
                     allowed_moves.append(square + i)
         # elif(self.get_type(piece)== ChessBoard.BISHOP):
         # elif(self.get_type(piece)== ChessBoard.QUEEN):
