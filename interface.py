@@ -10,6 +10,7 @@ from game_controller import *
 
 WIDTH = 640
 SQUARE = WIDTH // 8
+MODE="flip"
 
 # =========================================================
 # HELPERS
@@ -153,7 +154,8 @@ def main():
                             selected_piece = None
                             allowed_moves = []
                             game.side_to_move = "b" if game.side_to_move == "w" else "w"
-                            flip_board= not flip_board
+                            if(MODE=="flip"):
+                                flip_board= not flip_board
                         else:
                             invalid_animation = InvalidMoveAnimation(square)
                             selected_piece = None
