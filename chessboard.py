@@ -236,11 +236,11 @@ class ChessBoard:
     
     def get_color(self, piece_num):
         # TODO: add promotion stuff here if you change number or change piece_num cast for that game
-        if(piece_num<0):
+        if(piece_num < 0):
             return ""
         if(piece_num < 16):
             return "w"
-        elif(piece_num <32):
+        elif(piece_num < 32):
             return "b"
     def is_pawn_in_start(self, piece_id):
         if(self.get_type(piece_id) != ChessBoard.PAWN):

@@ -2,6 +2,7 @@ import pygame
 import os
 from chessboard import *
 from invalid_animation import *
+from game_controller import *
 
 def draw_selected_square(screen, square):
     overlay = pygame.Surface((SQUARE, SQUARE), pygame.SRCALPHA)
@@ -104,6 +105,7 @@ def main():
     selected_piece = None
     invalid_animation = None
     allowed_moves=[]
+    game= GameHandler()
 
     clock = pygame.time.Clock()
     running = True
@@ -117,46 +119,38 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            print(selected_piece)
+            print(allowed_moves)
+            x, y = pygame.mouse.get_pos()
+            col = x // SQUARE
+            row = y // SQUARE
+            square = row * 8 + col
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = pygame.mouse.get_pos()
-                col = x // SQUARE
-                row = y // SQUARE
-                square = row * 8 + col
-
-                clicked_piece = board.squarePiece[square]
-
-                # =========================
-                # Nothing selected
-                # =========================
-                if selected_piece is None:
-                    if clicked_piece != -1:
-                        selected_piece = clicked_piece
-                        allowed_moves = board.get_legal_moves(selected_piece)
-
-                # =========================
-                # Something already selected
-                # =========================
+            # =========================
+            # Nothing selected → SELECT
+            # =========================
+            if selected_piece is None:
+                if board.get_color(board.squarePiece[square]) == game.side_to_move:
+                    selected_piece = board.squarePiece[square]
+                    allowed_moves = board.get_legal_moves(selected_piece)
                 else:
-                    # Deselect if same square clicked
-                    if board.pieceSquare[selected_piece] == square:
-                        selected_piece = None
-                        allowed_moves = []
+                    invalid_animation= InvalidMoveAnimation(square)
 
-                    # Move if valid
-                    elif square in allowed_moves:
+            # =========================
+            # Piece already selected → TRY MOVE
+            # =========================
+            else:
+                if board.pieceSquare[selected_piece] == square:
+                    selected_piece= None
+                    allowed_moves= []
+                else:
+                    if(square in allowed_moves):
                         board.move_piece(selected_piece, square)
-                        selected_piece = None
-                        allowed_moves = []
-
-                    # Click another piece (reselect)
-                    elif clicked_piece != -1:
-                        selected_piece = clicked_piece
-                        allowed_moves = board.get_legal_moves(selected_piece)
-
-                    # Invalid click
+                        allowed_moves=[]
+                        game.side_to_move= "b" if game.side_to_move=="w" else "w"
                     else:
-                        selected_piece = None
+                        invalid_animation = InvalidMoveAnimation(square)
                         allowed_moves = []
 
         # ========================
