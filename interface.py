@@ -5,42 +5,21 @@ from invalid_animation import *
 from game_controller import *
 
 # =========================================================
-# DRAW HELPERS
+# CONSTANTS
 # =========================================================
 
-def draw_selected_square(screen, square, flip_board=False):
-    overlay = pygame.Surface((SQUARE, SQUARE), pygame.SRCALPHA)
-    overlay.fill((50, 100, 255, 120))  # blue transparent
+WIDTH = 640
+SQUARE = WIDTH // 8
 
-    row = square // 8
-    col = square % 8
+# =========================================================
+# HELPERS
+# =========================================================
 
+def flip_coords_vertical(row, col, flip_board):
+    """Flip board top-to-bottom if flip_board=True"""
     if flip_board:
-        row = 7 - row
-        col = 7 - col
-
-    screen.blit(overlay, (col * SQUARE, row * SQUARE))
-
-
-def draw_allowed_moves(screen, moves, flip_board=False):
-    for square in moves:
-        row = square // 8
-        col = square % 8
-
-        if flip_board:
-            row = 7 - row
-            col = 7 - col
-
-        center_x = col * SQUARE + SQUARE // 2
-        center_y = row * SQUARE + SQUARE // 2
-
-        pygame.draw.circle(
-            screen,
-            (30, 144, 255),  # blue
-            (center_x, center_y),
-            SQUARE // 6,
-        )
-
+        return 7 - row, col
+    return row, col
 
 def load_piece_images(folder):
     images = {}
@@ -53,11 +32,9 @@ def load_piece_images(folder):
             images[key] = img
     return images
 
-
 def piece_to_key(board, pid):
     if pid == -1:
         return None
-
     color = board.get_color(pid)
     type_map = {
         ChessBoard.PAWN: "Pawn",
@@ -67,49 +44,51 @@ def piece_to_key(board, pid):
         ChessBoard.QUEEN: "Queen",
         ChessBoard.KING: "King",
     }
-
     return color + "_" + type_map[board.pieceType[pid]]
 
+# =========================================================
+# DRAW FUNCTIONS
+# =========================================================
 
 def draw_board(screen, flip_board=False):
     colors = [(240, 217, 181), (181, 136, 99)]
     for row in range(8):
         for col in range(8):
+            draw_row, draw_col = flip_coords_vertical(row, col, flip_board)
             color = colors[(row + col) % 2]
-
-            draw_row = 7 - row if flip_board else row
-            draw_col = 7 - col if flip_board else col
-
-            pygame.draw.rect(
-                screen,
-                color,
-                (draw_col * SQUARE, draw_row * SQUARE, SQUARE, SQUARE),
-            )
-
+            pygame.draw.rect(screen, color, (draw_col * SQUARE, draw_row * SQUARE, SQUARE, SQUARE))
 
 def draw_pieces(screen, board, images, flip_board=False):
     for square in range(64):
         pid = board.squarePiece[square]
         if pid == -1:
             continue
-
         key = piece_to_key(board, pid)
         row = square // 8
         col = square % 8
+        draw_row, draw_col = flip_coords_vertical(row, col, flip_board)
+        screen.blit(images[key], (draw_col * SQUARE, draw_row * SQUARE))
 
-        if flip_board:
-            row = 7 - row
-            col = 7 - col
+def draw_selected_square(screen, square, flip_board=False):
+    overlay = pygame.Surface((SQUARE, SQUARE), pygame.SRCALPHA)
+    overlay.fill((50, 100, 255, 120))
+    row = square // 8
+    col = square % 8
+    row, col = flip_coords_vertical(row, col, flip_board)
+    screen.blit(overlay, (col * SQUARE, row * SQUARE))
 
-        screen.blit(images[key], (col * SQUARE, row * SQUARE))
-
+def draw_allowed_moves(screen, moves, flip_board=False):
+    for square in moves:
+        row = square // 8
+        col = square % 8
+        row, col = flip_coords_vertical(row, col, flip_board)
+        center_x = col * SQUARE + SQUARE // 2
+        center_y = row * SQUARE + SQUARE // 2
+        pygame.draw.circle(screen, (30, 144, 255), (center_x, center_y), SQUARE // 6)
 
 # =========================================================
 # MAIN LOOP
 # =========================================================
-
-WIDTH = 640
-SQUARE = WIDTH // 8
 
 def main():
     pygame.init()
@@ -120,43 +99,39 @@ def main():
     images = load_piece_images("assets")
 
     selected_piece = None
-    invalid_animation = None
     allowed_moves = []
+    invalid_animation = None
     game = GameHandler()
 
-    render_surface = pygame.Surface((WIDTH, WIDTH))  # intermediate surface
-    flip_board = True  # toggle this to flip board visually
+    render_surface = pygame.Surface((WIDTH, WIDTH))
+    flip_board = True  # vertical flip top-to-bottom
 
     clock = pygame.time.Clock()
     running = True
 
     while running:
-        clock.tick(60)  # 60 FPS
+        clock.tick(60)
 
         # ========================
-        # 1️⃣ Handle Events
+        # EVENTS
         # ========================
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                print(selected_piece)
-                print(allowed_moves)
                 x, y = pygame.mouse.get_pos()
-                
                 col = x // SQUARE
                 row = y // SQUARE
-                square = row * 8 + col
-                
+
+                # adjust row for vertical flip
                 if flip_board:
                     row = 7 - row
-                    col = 7 - col  # optional if you also want horizontal flip
 
                 square = row * 8 + col
 
                 # =========================
-                # Nothing selected → SELECT
+                # SELECT PIECE
                 # =========================
                 if selected_piece is None:
                     if board.get_color(board.squarePiece[square]) == game.side_to_move:
@@ -166,7 +141,7 @@ def main():
                         invalid_animation = InvalidMoveAnimation(square)
 
                 # =========================
-                # Piece already selected → TRY MOVE
+                # MOVE PIECE
                 # =========================
                 else:
                     if board.pieceSquare[selected_piece] == square:
@@ -177,15 +152,15 @@ def main():
                             board.move_piece(selected_piece, square)
                             selected_piece = None
                             allowed_moves = []
-                            flip_board=not flip_board
                             game.side_to_move = "b" if game.side_to_move == "w" else "w"
+                            flip_board= not flip_board
                         else:
                             invalid_animation = InvalidMoveAnimation(square)
                             selected_piece = None
                             allowed_moves = []
 
         # ========================
-        # Update Animation
+        # UPDATE ANIMATION
         # ========================
         if invalid_animation:
             invalid_animation.update()
@@ -193,9 +168,9 @@ def main():
                 invalid_animation = None
 
         # ========================
-        # Draw Everything
+        # DRAW EVERYTHING
         # ========================
-        render_surface.fill((0, 0, 0))  # clear surface
+        render_surface.fill((0, 0, 0))
 
         draw_board(render_surface, flip_board)
         draw_pieces(render_surface, board, images, flip_board)
@@ -205,7 +180,6 @@ def main():
         if invalid_animation:
             invalid_animation.draw(render_surface, SQUARE)
 
-        # Blit render surface to screen
         screen.blit(render_surface, (0, 0))
         pygame.display.flip()
 
