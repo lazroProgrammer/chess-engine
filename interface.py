@@ -144,8 +144,15 @@ def main():
                 print(selected_piece)
                 print(allowed_moves)
                 x, y = pygame.mouse.get_pos()
+                
                 col = x // SQUARE
                 row = y // SQUARE
+                square = row * 8 + col
+                
+                if flip_board:
+                    row = 7 - row
+                    col = 7 - col  # optional if you also want horizontal flip
+
                 square = row * 8 + col
 
                 # =========================
