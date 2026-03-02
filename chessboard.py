@@ -357,20 +357,33 @@ class ChessBoard:
         if piece_type in offsets_increments:
 
             for dr, dc in offsets_increments[piece_type]:
-                r = row + dr
-                c = col + dc
+                r, c = row + dr, col + dc
 
-                while 0 <= r < 8 and 0 <= c < 8:
+                while self.in_boundary((r, c)):
                     target = self.get_square((r, c))
                     target_piece = self.squarePiece[target]
 
+                    # Empty square
                     if target_piece == -1:
                         allowed_moves.append(target)
+
+                    # Occupied square
                     else:
+                        # Enemy piece
                         if self.pieceColor[target_piece] != color:
+                            # Skip enemy king for "attacked squares" calculation if needed
+                            enemy_king_id = self.WHITE_KING if color == self.BLACK else self.BLACK_KING
+                            if target_piece == enemy_king_id:
+                                r += dr
+                                c += dc
+                                continue  # keep sliding past the enemy king
+
                             allowed_moves.append(target)
+
+                        # Stop sliding in all other cases
                         break
 
+                    # Move along the ray
                     r += dr
                     c += dc
 
