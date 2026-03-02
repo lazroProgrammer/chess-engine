@@ -9,8 +9,8 @@ class ChessBoard:
     QUEEN  = 4
     KING   = 5
     
-    WHITE_KING=31
-    BLACK_KING=15
+    WHITE_KING=15
+    BLACK_KING=31
 
     # ==============================
     # Color Constants
@@ -144,11 +144,16 @@ class ChessBoard:
     def get_square_of_piece(self, piece_id):
         return self.pieceSquare[piece_id]
 
-    def get_coordinates(square: int):
+    def get_coordinates(self, square: int):
         return (square//8, square % 8)
         
-    def get_square(coordinates: tuple):
+    def get_square(self, coordinates: tuple):
         return coordinates[0] * 8 + coordinates[1]
+    def in_boundary(self, pair):
+        if(pair[0]<8 and pair[1]<8 and pair[0]>-1 and pair[1]>-1):
+            return True
+        return False
+        
     
     def move_piece(self, piece_id, to_square):
         from_square = self.pieceSquare[piece_id]
@@ -219,38 +224,17 @@ class ChessBoard:
 
         return stats
     def get_type(self, piece_num):
-        pawns=[i for i in range(8)]
-        pawns.extend([i for i in range(16,24)]),
-        pieces=[
-                pawns,
-                [8,9,24,25],
-                [10,11,26,27],
-                [12,13,28,29],
-                [14,30],
-                [15,31]]
         if(piece_num==-1):
             return None
-        elif(piece_num in pieces[0]):
-            return ChessBoard.PAWN
-        elif(piece_num in pieces[1]):
-            return ChessBoard.ROOK
-        elif(piece_num in pieces[2]):
-            return ChessBoard.KNIGHT
-        elif(piece_num in pieces[3]):
-            return ChessBoard.BISHOP
-        elif(piece_num in pieces[4]):
-            return ChessBoard.QUEEN
-        elif(piece_num in pieces[5]):
-            return ChessBoard.KING
+        else:
+            return self.pieceType[piece_num]
     
     def get_color(self, piece_num):
-        # TODO: add promotion stuff here if you change number or change piece_num cast for that game
         if(piece_num < 0):
-            return ""
-        if(piece_num < 16):
-            return "w"
-        elif(piece_num < 32):
-            return "b"
+            return None
+        else:
+            return self.pieceColor[piece_num]
+        
     def is_pawn_in_start(self, piece_id):
         if(self.get_type(piece_id) != ChessBoard.PAWN):
             raise RuntimeError("pawn_in_start() is only for pawns")
@@ -288,74 +272,111 @@ class ChessBoard:
             if(cpt % 8 == 0):
                 print(f"{line}")
                 line=""
-    def get_legal_moves(self, piece):
-        allowed_moves=[]
-        square=self.pieceSquare[piece]
-        if(self.get_type(piece)== ChessBoard.PAWN ):
-            if(self.get_color(piece)=="w"):
-                if(square+7 <64 and self.get_color(self.squarePiece[square+7])== "b"):
-                    allowed_moves.append(square + 7)
-                if(square + 9 < 64 and self.get_color(self.squarePiece[square+9])== "b"):
-                    allowed_moves.append(square + 9)
-                if(square + 8 < 64 and  self.squarePiece[square + 8] == -1):
-                    allowed_moves.append(square + 8) 
-                    if(self.is_pawn_in_start(piece) and square + 16 < 64  and self.squarePiece[square + 16] == -1):
-                        allowed_moves.append(square + 16)
-            elif(self.get_color(piece)=="b"):    
-                if(square - 7 >= 0 and self.get_color(self.squarePiece[square-7])== "w"):
-                    print
-                    allowed_moves.append(square - 7)
-                if(square - 9 >= 0 and self.get_color(self.squarePiece[square-9])== "w"):
-                    allowed_moves.append(square - 9)
-                if(square - 8 >= 0 and self.squarePiece[square - 8] == -1):
-                    allowed_moves.append(square - 8) 
-                    if(square - 16 >= 0 and self.is_pawn_in_start(piece) and self.squarePiece[square - 16] == -1):
-                        allowed_moves.append(square - 16)
-                
-        elif(self.get_type(piece)== ChessBoard.ROOK):
-            allowed_moves.extend(self.get_rook_moves(piece))
-        elif(self.get_type(piece)== ChessBoard.KNIGHT):
-            moves_delta=[(1,6), (1,10), (2,17), (2,15)]
+    def get_pseudo_moves(self, piece_id):
+        allowed_moves = []
 
-            for (a,i) in moves_delta:
-                if( square - i >= 0 and self.get_color(self.squarePiece[square -i]) != self.get_color(piece) and square // 8 - a == (square - i)//8):
-                    allowed_moves.append(square - i)
-                if( square + i < 64 and self.get_color(self.squarePiece[square +i]) !=  self.get_color(piece) and square // 8 + a == (square + i)//8):
-                    allowed_moves.append(square + i)
-        elif(self.get_type(piece)== ChessBoard.BISHOP):
-            allowed_moves.extend(self.get_bishop_moves(piece))
-        elif(self.get_type(piece)== ChessBoard.QUEEN):
-            allowed_moves.extend(self.get_bishop_moves(piece))
-            allowed_moves.extend(self.get_rook_moves(piece))
-        elif self.get_type(piece) == ChessBoard.KING:
+        square = self.pieceSquare[piece_id]
+        if square == -1:
+            return allowed_moves
 
-            square = self.pieceSquare[piece]
-            color = self.get_color(piece)
+        piece_type = self.pieceType[piece_id]
+        color = self.pieceColor[piece_id]
 
-            row = square // 8
-            col = square % 8
+        row, col = self.get_coordinates(square)
 
-            king_offsets = [
-                (-1, -1), (-1, 0), (-1, 1),
-                ( 0, -1),          ( 0, 1),
-                ( 1, -1), ( 1, 0), ( 1, 1)
-            ]
+        offsets = {
+            self.PAWN:   [(-1, -1), (-1, 1)],  # capture offsets (white perspective)
+            self.KNIGHT: [(2,1),(1,2),(-2,1),(-1,2),(2,-1),(1,-2),(-2,-1),(-1,-2)],
+            self.KING:   [(1,1),(-1,1),(1,-1),(-1,-1),(1,0),(0,1),(-1,0),(0,-1)]
+        }
 
-            for dr, dc in king_offsets:
+        offsets_increments = {
+            self.BISHOP: [(1,1),(-1,1),(1,-1),(-1,-1)],
+            self.ROOK:   [(1,0),(0,1),(-1,0),(0,-1)],
+            self.QUEEN:  [(1,1),(-1,1),(1,-1),(-1,-1),(1,0),(0,1),(-1,0),(0,-1)]
+        }
+
+        # -------------------------
+        # PAWN
+        # -------------------------
+        if piece_type == self.PAWN:
+
+            direction = 1 if color == self.WHITE else -1
+
+            # Forward move
+            forward_row = row + direction
+            if 0 <= forward_row < 8:
+                forward_square = self.get_square((forward_row, col))
+                if self.squarePiece[forward_square] == -1:
+                    allowed_moves.append(forward_square)
+
+                    # Double move
+                    if self.is_pawn_in_start(piece_id):
+                        double_row = row + 2 * direction
+                        double_square = self.get_square((double_row, col))
+                        if self.squarePiece[double_square] == -1:
+                            allowed_moves.append(double_square)
+
+            # Captures
+            direction = 1 if color == self.WHITE else -1
+
+            for dc in (-1, 1):
+                new_row = row + direction
+                new_col = col + dc
+
+                if self.in_boundary((new_row,new_col)):
+                    target = self.get_square((new_row, new_col))
+                    target_piece = self.squarePiece[target]
+
+                    if target_piece != -1 and self.pieceColor[target_piece] != color:
+                        allowed_moves.append(target)
+
+            return allowed_moves
+
+        # -------------------------
+        # KNIGHT / KING
+        # -------------------------
+        if piece_type in offsets:
+
+            for dr, dc in offsets[piece_type]:
                 new_row = row + dr
                 new_col = col + dc
 
                 if 0 <= new_row < 8 and 0 <= new_col < 8:
-                    target = new_row * 8 + new_col
+                    target = self.get_square((new_row, new_col))
+                    target_piece = self.squarePiece[target]
+
+                    if target_piece == -1 or self.pieceColor[target_piece] != color:
+                        allowed_moves.append(target)
+
+            return allowed_moves
+
+        # -------------------------
+        # SLIDING PIECES
+        # -------------------------
+        if piece_type in offsets_increments:
+
+            for dr, dc in offsets_increments[piece_type]:
+                r = row + dr
+                c = col + dc
+
+                while 0 <= r < 8 and 0 <= c < 8:
+                    target = self.get_square((r, c))
                     target_piece = self.squarePiece[target]
 
                     if target_piece == -1:
                         allowed_moves.append(target)
+                    else:
+                        if self.pieceColor[target_piece] != color:
+                            allowed_moves.append(target)
+                        break
 
-                    elif self.get_color(target_piece) != color:
-                        allowed_moves.append(target)
-        return allowed_moves
-                
+                    r += dr
+                    c += dc
+
+            return allowed_moves
+
+        return allowed_moves            
 
     def get_rook_moves(self, piece):
             color = self.get_color(piece)
@@ -454,11 +475,12 @@ class ChessBoard:
 
         return allowed_moves
     ## TODO: fix these after doing the groundwork
-    def in_check():
-        return False
+    def in_check(self, color):
+        king= self.WHITE_KING if color==self.WHITE else self.BLACK_KING
+        return self.is_square_attacked(self.pieceSquare[king], color)
     def checkmate(self, turn):
-        king= self.WHITE_KING if turn== "w" else self.BLACK_KING
-        if self.in_check() and self.get_legal_moves(king) == [] and True:
+        king= self.WHITE_KING if turn== self.WHITE else self.BLACK_KING
+        if self.in_check() and self.get_pseudo_moves(king) == [] and True:
             ## TODO!: missing the getting piece to block forced Check
             return True
         else:
@@ -466,10 +488,82 @@ class ChessBoard:
             return False
             
         
-    def is_square_attacked(self, square):
-        rows, cols= self.get_coordinates(square)
-        pawn_offset=[(-1,-1), (-1,1)]
-        knight_offset=[(2,1),(1,2),(-2,1),(-1,2),(2,-1),(1,-2),(-2,-1),(-1,-2)]
-        bishop_offset_incrementer= [(1,1),(-1,1),(1,-1),(-1,-1)]
-        rook_offset_incrementer= [(1,0),(0,1),(-1,0),(0,-1)]
+    def is_square_attacked(self, square, color):
+        pair= self.get_coordinates(square)
+        offsets={self.PAWN:[(-1,-1), (-1,1)],
+        self.KNIGHT:[(2,1),(1,2),(-2,1),(-1,2),(2,-1),(1,-2),(-2,-1),(-1,-2)],
+        self.KING:  [(1,1),(-1,1),(1,-1),(-1,-1),(1,0),(0,1),(-1,0),(0,-1)]
+        }
+        offsets_increments={
+        self.BISHOP:[(1,1),(-1,1),(1,-1),(-1,-1)],
+        self.ROOK:[(1,0),(0,1),(-1,0),(0,-1)],
+        self.QUEEN:  [(1,1),(-1,1),(1,-1),(-1,-1),(1,0),(0,1),(-1,0),(0,-1)]
+        }
         
+        opposite_color= self.WHITE if color==self.BLACK else self.BLACK
+        for piece_type in offsets.keys():
+            for offset in offsets[piece_type]:
+                updated_coordinates=(pair[0]+offset[0], pair[1]+offset[1])
+                if(self.in_boundary(updated_coordinates)):
+                    danger_square= self.get_square(updated_coordinates)
+                    potentiel_piece=self.squarePiece[danger_square]
+                    if(self.get_type(potentiel_piece)== piece_type and self.pieceColor[potentiel_piece]  == opposite_color):
+                        return True
+        for piece_type in offsets_increments.keys():
+            if(self.exists(piece_type, opposite_color)):
+                for piece in self.get_pieces(piece_type, opposite_color):
+                    if(square in self.get_pseudo_moves(piece)):
+                        return True
+        return False   
+              
+    def get_pieces(self, piece_type=None, color=None, only_alive=True):
+        """
+        Returns a list of piece_ids filtered by:
+        - piece_type (PAWN, KNIGHT, etc.)
+        - color (WHITE / BLACK)
+        - only_alive (exclude captured pieces)
+        """
+
+        result = []
+
+        for piece_id in range(32):
+
+            if only_alive and self.pieceSquare[piece_id] == -1:
+                continue
+
+            if piece_type is not None:
+                if self.pieceType[piece_id] != piece_type:
+                    continue
+
+            if color is not None:
+                if self.pieceColor[piece_id] != color:
+                    continue
+
+            result.append(piece_id)
+
+        return result   
+    
+    def get_legal_moves(self, piece_id):
+        pseudo_moves= self.get_pseudo_moves(piece_id)
+
+        if piece_id==self.WHITE_KING:
+            moves=[move for move in pseudo_moves if not self.is_square_attacked(move, self.WHITE)]
+            return moves
+        elif piece_id==self.BLACK_KING:
+            moves=[move for move in pseudo_moves if not self.is_square_attacked(move, self.BLACK)]
+            return moves    
+        else:
+            return pseudo_moves 
+        
+        
+        
+    def exists(self, piece_type, color):
+        for piece_id in range(32):
+            if self.pieceSquare[piece_id] == -1:
+                continue
+
+            if self.pieceType[piece_id] == piece_type and \
+            self.pieceColor[piece_id] == color:
+                return True
+
+        return False

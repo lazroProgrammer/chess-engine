@@ -2,7 +2,7 @@ from chessboard import *
 class GameHandler:
     def __init__(self):
         self.board = ChessBoard()
-        self.side_to_move = "w"
+        self.side_to_move = self.board.WHITE
         self.game_over = False
         self.rotate_board = False
 
@@ -20,4 +20,4 @@ class GameHandler:
         return False
 
     def switch_turn(self):
-        self.side_to_move = "b" if self.side_to_move == "w" else "w"
+        self.side_to_move = self.board.BLACK if self.side_to_move == self.board.WHITE else self.board.WHITE

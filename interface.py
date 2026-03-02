@@ -36,7 +36,7 @@ def load_piece_images(folder):
 def piece_to_key(board, pid):
     if pid == -1:
         return None
-    color = board.get_color(pid)
+    color = "w" if board.get_color(pid)== board.WHITE else "b"
     type_map = {
         ChessBoard.PAWN: "Pawn",
         ChessBoard.KNIGHT: "Knight",
@@ -135,12 +135,13 @@ def main():
                 # SELECT PIECE
                 # =========================
                 if selected_piece is None:
-                    if board.get_color(board.squarePiece[square]) == game.side_to_move:
-                        selected_piece = board.squarePiece[square]
-                        allowed_moves = board.get_legal_moves(selected_piece)
+                    pid = board.squarePiece[square]
+
+                    if pid != -1 and board.get_color(pid) == game.side_to_move:
+                        selected_piece = pid
+                        allowed_moves = board.get_legal_moves(pid)
                     else:
                         invalid_animation = InvalidMoveAnimation(square)
-
                 # =========================
                 # MOVE PIECE
                 # =========================
@@ -153,7 +154,7 @@ def main():
                             board.move_piece(selected_piece, square)
                             selected_piece = None
                             allowed_moves = []
-                            game.side_to_move = "b" if game.side_to_move == "w" else "w"
+                            game.side_to_move = board.BLACK if game.side_to_move == board.WHITE else board.WHITE
                             if(MODE=="flip"):
                                 flip_board= not flip_board
                         else:
