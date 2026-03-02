@@ -8,6 +8,9 @@ class ChessBoard:
     ROOK   = 3
     QUEEN  = 4
     KING   = 5
+    
+    WHITE_KING=31
+    BLACK_KING=15
 
     # ==============================
     # Color Constants
@@ -141,6 +144,12 @@ class ChessBoard:
     def get_square_of_piece(self, piece_id):
         return self.pieceSquare[piece_id]
 
+    def get_coordinates(square: int):
+        return (square//8, square % 8)
+        
+    def get_square(coordinates: tuple):
+        return coordinates[0] * 8 + coordinates[1]
+    
     def move_piece(self, piece_id, to_square):
         from_square = self.pieceSquare[piece_id]
         captured_piece = self.squarePiece[to_square]
@@ -444,3 +453,23 @@ class ChessBoard:
                 c += dc
 
         return allowed_moves
+    ## TODO: fix these after doing the groundwork
+    def in_check():
+        return False
+    def checkmate(self, turn):
+        king= self.WHITE_KING if turn== "w" else self.BLACK_KING
+        if self.in_check() and self.get_legal_moves(king) == [] and True:
+            ## TODO!: missing the getting piece to block forced Check
+            return True
+        else:
+            #TODO: the restricted set of moves that can be played
+            return False
+            
+        
+    def is_square_attacked(self, square):
+        rows, cols= self.get_coordinates(square)
+        pawn_offset=[(-1,-1), (-1,1)]
+        knight_offset=[(2,1),(1,2),(-2,1),(-1,2),(2,-1),(1,-2),(-2,-1),(-1,-2)]
+        bishop_offset_incrementer= [(1,1),(-1,1),(1,-1),(-1,-1)]
+        rook_offset_incrementer= [(1,0),(0,1),(-1,0),(0,-1)]
+        
