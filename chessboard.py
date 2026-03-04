@@ -11,12 +11,33 @@ class ChessBoard:
     
     WHITE_KING=15
     BLACK_KING=31
+    
+    WHITE_ROOK1=8
+    WHITE_ROOK2=9
+    BLACK_ROOK1=24
+    BLACK_ROOK2=25
 
     # ==============================
     # Color Constants
     # ==============================
     WHITE = 0
     BLACK = 1
+    
+    WQ = 0b1000
+    WK = 0b0100
+    BQ = 0b0010
+    BK = 0b0001
+    
+    B1= 1
+    C1= 2
+    D1= 3
+    F1= 5
+    G1= 6
+    B8= 57
+    C8= 58
+    D8= 59
+    F8= 61
+    G8= 62
 
     # ==============================
     # Constructor
@@ -36,7 +57,7 @@ class ChessBoard:
 
         # Game state
         self.sideToMove = ChessBoard.WHITE
-        self.castlingRights = 0b1111  # WK WQ BK BQ
+        self.castlingRights = 0b1111  # WQ WK BQ BK
         self.enPassantSquare = -1
         self.halfmoveClock = 0
         self.fullmoveNumber = 1
@@ -156,6 +177,31 @@ class ChessBoard:
         
     
     def move_piece(self, piece_id, to_square):
+        if(piece_id == self.WHITE_KING):
+            self.castlingRights &= 0b0011
+        elif(piece_id == self.BLACK_KING):
+            self.castlingRights &= 0b1100
+        elif(piece_id == self.WHITE_ROOK1):
+            self.castlingRights &= 0b0111
+        elif(piece_id == self.WHITE_ROOK2):
+            self.castlingRights &= 0b1011
+        elif(piece_id == self.BLACK_ROOK1):
+            self.castlingRights &= 0b1101
+        elif(piece_id == self.BLACK_ROOK2):
+            self.castlingRights &= 0b1110
+            
+        if( piece_id== self.WHITE_KING  and abs(to_square - self.pieceSquare[self.WHITE_KING]) > 1):
+            if( to_square== self.G1):
+                self.move_piece(self.WHITE_ROOK2, self.F1)
+            if( to_square== self.C1):
+                self.move_piece(self.WHITE_ROOK1, self.D1)
+        if( piece_id== self.BLACK_KING  and abs(to_square - self.pieceSquare[self.BLACK_KING]) > 1 ):
+            if( to_square== self.G8):
+                self.move_piece(self.BLACK_ROOK2, self.F8)
+            if( to_square== self.C8):
+                self.move_piece(self.BLACK_ROOK1, self.D8)
+        
+        
         from_square = self.pieceSquare[piece_id]
         captured_piece = self.squarePiece[to_square]
 
@@ -329,7 +375,7 @@ class ChessBoard:
                     target_piece = self.squarePiece[target]
 
                     if target_piece != -1 and self.pieceColor[target_piece] != color:
-                        allowed_moves.append(target)
+                        allowed_moves.append(target)    
 
             return allowed_moves
 
@@ -348,6 +394,19 @@ class ChessBoard:
 
                     if target_piece == -1 or self.pieceColor[target_piece] != color:
                         allowed_moves.append(target)
+            
+            if(piece_id == self.WHITE_KING):
+                if(self.castlingRights & self.WK and self.squarePiece[self.G1]==-1 and self.squarePiece[self.F1]==-1 and not self.is_square_attacked(self.G1, self.WHITE)):
+                    allowed_moves.append(self.G1)
+                elif(self.castlingRights & self.WQ and self.squarePiece[self.B1]==-1 and self.squarePiece[self.C1]==-1 and self.squarePiece[self.D1]==-1 and not self.is_square_attacked(self.C1, self.WHITE)):
+                    allowed_moves.append(self.C1)
+                
+            elif(piece_id == self.BLACK_KING):
+                if(self.castlingRights & self.BK and self.squarePiece[self.G8]==-1 and self.squarePiece[self.F8]==-1 and not self.is_square_attacked(self.G8, self.BLACK)):
+                    allowed_moves.append(self.G8)
+                elif(self.castlingRights & self.BQ and self.squarePiece[self.B8]==-1 and self.squarePiece[self.C8]==-1 and self.squarePiece[self.D8]==-1 and not self.is_square_attacked(self.C8, self.BLACK)):
+                    allowed_moves.append(self.C8)
+            
 
             return allowed_moves
 
@@ -525,91 +584,6 @@ class ChessBoard:
                         return True
         return False   
               
-    
-    def get_attackers(self, square, defender_color):
-
-        attackers = []
-        row, col = self.get_coordinates(square)
-
-        enemy_color = self.BLACK if defender_color == self.WHITE else self.WHITE
-
-        # ==============================
-        # Pawn Attacks
-        # ==============================
-        pawn_direction = -1 if defender_color == self.WHITE else 1
-
-        for dc in (-1, 1):
-            r = row + pawn_direction
-            c = col + dc
-            if self.in_boundary((r, c)):
-                sq = self.get_square((r, c))
-                pid = self.squarePiece[sq]
-                if pid != -1 and \
-                self.pieceType[pid] == self.PAWN and \
-                self.pieceColor[pid] == enemy_color:
-                    attackers.append(pid)
-
-        # ==============================
-        # Knight Attacks
-        # ==============================
-        knight_offsets = [(2,1),(1,2),(-2,1),(-1,2),(2,-1),(1,-2),(-2,-1),(-1,-2)]
-
-        for dr, dc in knight_offsets:
-            r = row + dr
-            c = col + dc
-            if self.in_boundary((r, c)):
-                sq = self.get_square((r, c))
-                pid = self.squarePiece[sq]
-                if pid != -1 and \
-                self.pieceType[pid] == self.KNIGHT and \
-                self.pieceColor[pid] == enemy_color:
-                    attackers.append(pid)
-
-        # ==============================
-        # King Attacks
-        # ==============================
-        king_offsets = [(1,1),(-1,1),(1,-1),(-1,-1),(1,0),(0,1),(-1,0),(0,-1)]
-
-        for dr, dc in king_offsets:
-            r = row + dr
-            c = col + dc
-            if self.in_boundary((r, c)):
-                sq = self.get_square((r, c))
-                pid = self.squarePiece[sq]
-                if pid != -1 and \
-                self.pieceType[pid] == self.KING and \
-                self.pieceColor[pid] == enemy_color:
-                    attackers.append(pid)
-
-        # ==============================
-        # Sliding Attacks
-        # ==============================
-        sliding_directions = {
-            self.ROOK: [(1,0),(-1,0),(0,1),(0,-1)],
-            self.BISHOP: [(1,1),(-1,1),(1,-1),(-1,-1)],
-            self.QUEEN: [(1,0),(-1,0),(0,1),(0,-1),
-                        (1,1),(-1,1),(1,-1),(-1,-1)]
-        }
-
-        for piece_type, directions in sliding_directions.items():
-            for dr, dc in directions:
-                r, c = row + dr, col + dc
-                while self.in_boundary((r, c)):
-                    sq = self.get_square((r, c))
-                    pid = self.squarePiece[sq]
-
-                    if pid == -1:
-                        r += dr
-                        c += dc
-                        continue
-
-                    if self.pieceColor[pid] == enemy_color and \
-                    self.pieceType[pid] == piece_type:
-                        attackers.append(pid)
-
-                    break  # stop at first piece
-
-        return attackers
     def get_pieces(self, piece_type=None, color=None, only_alive=True):
         """
         Returns a list of piece_ids filtered by:
@@ -651,7 +625,7 @@ class ChessBoard:
             king_attackers=self.get_checkers(defender_color)
             if(len(king_attackers) == 0):
                 return pseudo_moves 
-            elif(len(king_attackers)== 1 and self.get_type(king_attackers[0]) != self.PAWN and self.get_type(king_attackers[0]) != self.KNIGHT):
+            elif(len(king_attackers)== 1):
                 ray= self.get_blocking_squares(king_attackers[0], defender_color)
                 print(ray)
                 return [e for e in ray if e in pseudo_moves]
