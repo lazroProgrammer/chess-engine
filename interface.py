@@ -139,7 +139,7 @@ def main():
 
                     if pid != -1 and board.get_color(pid) == game.side_to_move:
                         selected_piece = pid
-                        allowed_moves = board.get_legal_moves(pid)
+                        allowed_moves = board.get_legal_moves(pid, game.side_to_move)
                     else:
                         invalid_animation = InvalidMoveAnimation(square)
                 # =========================

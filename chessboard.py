@@ -487,10 +487,6 @@ class ChessBoard:
                 c += dc
 
         return allowed_moves
-    ## TODO: fix these after doing the groundwork
-    def in_check(self, color):
-        king= self.WHITE_KING if color==self.WHITE else self.BLACK_KING
-        return self.is_square_attacked(self.pieceSquare[king], color)
     def checkmate(self, turn):
         king= self.WHITE_KING if turn== self.WHITE else self.BLACK_KING
         if self.in_check() and self.get_pseudo_moves(king) == [] and True:
@@ -529,6 +525,91 @@ class ChessBoard:
                         return True
         return False   
               
+    
+    def get_attackers(self, square, defender_color):
+
+        attackers = []
+        row, col = self.get_coordinates(square)
+
+        enemy_color = self.BLACK if defender_color == self.WHITE else self.WHITE
+
+        # ==============================
+        # Pawn Attacks
+        # ==============================
+        pawn_direction = -1 if defender_color == self.WHITE else 1
+
+        for dc in (-1, 1):
+            r = row + pawn_direction
+            c = col + dc
+            if self.in_boundary((r, c)):
+                sq = self.get_square((r, c))
+                pid = self.squarePiece[sq]
+                if pid != -1 and \
+                self.pieceType[pid] == self.PAWN and \
+                self.pieceColor[pid] == enemy_color:
+                    attackers.append(pid)
+
+        # ==============================
+        # Knight Attacks
+        # ==============================
+        knight_offsets = [(2,1),(1,2),(-2,1),(-1,2),(2,-1),(1,-2),(-2,-1),(-1,-2)]
+
+        for dr, dc in knight_offsets:
+            r = row + dr
+            c = col + dc
+            if self.in_boundary((r, c)):
+                sq = self.get_square((r, c))
+                pid = self.squarePiece[sq]
+                if pid != -1 and \
+                self.pieceType[pid] == self.KNIGHT and \
+                self.pieceColor[pid] == enemy_color:
+                    attackers.append(pid)
+
+        # ==============================
+        # King Attacks
+        # ==============================
+        king_offsets = [(1,1),(-1,1),(1,-1),(-1,-1),(1,0),(0,1),(-1,0),(0,-1)]
+
+        for dr, dc in king_offsets:
+            r = row + dr
+            c = col + dc
+            if self.in_boundary((r, c)):
+                sq = self.get_square((r, c))
+                pid = self.squarePiece[sq]
+                if pid != -1 and \
+                self.pieceType[pid] == self.KING and \
+                self.pieceColor[pid] == enemy_color:
+                    attackers.append(pid)
+
+        # ==============================
+        # Sliding Attacks
+        # ==============================
+        sliding_directions = {
+            self.ROOK: [(1,0),(-1,0),(0,1),(0,-1)],
+            self.BISHOP: [(1,1),(-1,1),(1,-1),(-1,-1)],
+            self.QUEEN: [(1,0),(-1,0),(0,1),(0,-1),
+                        (1,1),(-1,1),(1,-1),(-1,-1)]
+        }
+
+        for piece_type, directions in sliding_directions.items():
+            for dr, dc in directions:
+                r, c = row + dr, col + dc
+                while self.in_boundary((r, c)):
+                    sq = self.get_square((r, c))
+                    pid = self.squarePiece[sq]
+
+                    if pid == -1:
+                        r += dr
+                        c += dc
+                        continue
+
+                    if self.pieceColor[pid] == enemy_color and \
+                    self.pieceType[pid] == piece_type:
+                        attackers.append(pid)
+
+                    break  # stop at first piece
+
+        return attackers
     def get_pieces(self, piece_type=None, color=None, only_alive=True):
         """
         Returns a list of piece_ids filtered by:
@@ -556,17 +637,27 @@ class ChessBoard:
 
         return result   
     
-    def get_legal_moves(self, piece_id):
+    def get_legal_moves(self, piece_id, defender_color):
         pseudo_moves= self.get_pseudo_moves(piece_id)
 
-        if piece_id==self.WHITE_KING:
+        if piece_id==self.WHITE_KING and defender_color== self.WHITE:
             moves=[move for move in pseudo_moves if not self.is_square_attacked(move, self.WHITE)]
             return moves
-        elif piece_id==self.BLACK_KING:
+        elif piece_id==self.BLACK_KING and defender_color== self.BLACK:
             moves=[move for move in pseudo_moves if not self.is_square_attacked(move, self.BLACK)]
             return moves    
         else:
-            return pseudo_moves 
+            king= self.WHITE_KING if defender_color== self.WHITE else self.BLACK_KING
+            king_attackers=self.get_checkers(defender_color)
+            if(len(king_attackers) == 0):
+                return pseudo_moves 
+            elif(len(king_attackers)== 1 and self.get_type(king_attackers[0]) != self.PAWN and self.get_type(king_attackers[0]) != self.KNIGHT):
+                ray= self.get_blocking_squares(king_attackers[0], defender_color)
+                print(ray)
+                return [e for e in ray if e in pseudo_moves]
+            else:
+                return []
+                
         
         
         
@@ -580,3 +671,125 @@ class ChessBoard:
                 return True
 
         return False
+    
+    
+    def get_checkers(self, color):
+
+        king_id = self.WHITE_KING if color == self.WHITE else self.BLACK_KING
+        king_square = self.pieceSquare[king_id]
+        row, col = self.get_coordinates(king_square)
+
+        enemy_color = self.BLACK if color == self.WHITE else self.WHITE
+        checkers = []
+
+        # ==================================
+        # Pawn checks
+        # ==================================
+        pawn_direction = -1 if color == self.WHITE else 1
+
+        for dc in (-1, 1):
+            r = row + pawn_direction
+            c = col + dc
+            if self.in_boundary((r, c)):
+                sq = self.get_square((r, c))
+                pid = self.squarePiece[sq]
+                if pid != -1 and \
+                self.pieceType[pid] == self.PAWN and \
+                self.pieceColor[pid] == enemy_color:
+                    checkers.append(pid)
+
+        # ==================================
+        # Knight checks
+        # ==================================
+        knight_offsets = [(2,1),(1,2),(-2,1),(-1,2),
+                        (2,-1),(1,-2),(-2,-1),(-1,-2)]
+
+        for dr, dc in knight_offsets:
+            r = row + dr
+            c = col + dc
+            if self.in_boundary((r, c)):
+                sq = self.get_square((r, c))
+                pid = self.squarePiece[sq]
+                if pid != -1 and \
+                self.pieceType[pid] == self.KNIGHT and \
+                self.pieceColor[pid] == enemy_color:
+                    checkers.append(pid)
+
+        # ==================================
+        # Sliding checks
+        # ==================================
+        directions = [
+            (1,0), (-1,0), (0,1), (0,-1),       # rook dirs
+            (1,1), (1,-1), (-1,1), (-1,-1)      # bishop dirs
+        ]
+
+        for dr, dc in directions:
+            r = row + dr
+            c = col + dc
+
+            while self.in_boundary((r, c)):
+                sq = self.get_square((r, c))
+                pid = self.squarePiece[sq]
+
+                if pid == -1:
+                    r += dr
+                    c += dc
+                    continue
+
+                if self.pieceColor[pid] == enemy_color:
+                    ptype = self.pieceType[pid]
+
+                    is_rook_dir = (dr == 0 or dc == 0)
+                    is_bishop_dir = (abs(dr) == abs(dc))
+
+                    if (
+                        (is_rook_dir and ptype in (self.ROOK, self.QUEEN)) or
+                        (is_bishop_dir and ptype in (self.BISHOP, self.QUEEN))
+                    ):
+                        checkers.append(pid)
+
+                break  # stop at first piece
+
+        return checkers
+    
+    def get_blocking_squares(self, attacker_id, defender_color):
+        """
+        Returns the squares that can be used to block a check or capture the attacking piece.
+
+        attacker_id: the piece giving the check
+        defender_color: the color of the king being checked
+
+        Returns:
+            List of squares along the ray between the king and the attacker, 
+            including the attacker's square. For pawns/knights, returns only the attacker's square.
+        """
+        king_id = self.WHITE_KING if defender_color == self.WHITE else self.BLACK_KING
+        king_square = self.pieceSquare[king_id]
+        attacker_square = self.pieceSquare[attacker_id]
+        attacker_type = self.pieceType[attacker_id]
+
+        # For pawns and knights, only capturing the piece can stop the check
+        if attacker_type in (self.PAWN, self.KNIGHT):
+            return [attacker_square]
+
+        # For sliding pieces, compute ray
+        kr, kc = self.get_coordinates(king_square)
+        ar, ac = self.get_coordinates(attacker_square)
+
+        dr = (ar - kr)
+        dc = (ac - kc)
+
+        # Normalize direction to -1, 0, or 1
+        dr = (dr > 0) - (dr < 0)
+        dc = (dc > 0) - (dc < 0)
+
+        # Collect squares along the ray (excluding king, include attacker)
+        r, c = kr + dr, kc + dc
+        ray_squares = []
+        while (r, c) != (ar, ac):
+            ray_squares.append(self.get_square((r, c)))
+            r += dr
+            c += dc
+
+        ray_squares.append(attacker_square)
+        return ray_squares
