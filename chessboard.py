@@ -39,6 +39,15 @@ class ChessBoard:
     F8= 61
     G8= 62
 
+
+    GAME_STATE=[
+    "ONGOING",
+    "CHECKMATE",
+    "STALEMATE",
+    "DRAW_50",
+    "DRAW_REPETITION",
+    "DRAW_INSUFFICIENT",
+    ]
     # ==============================
     # Constructor
     # ==============================
@@ -61,6 +70,8 @@ class ChessBoard:
         self.enPassantSquare = None
         self.halfmoveClock = 0
         self.fullmoveNumber = 1
+        
+        self.game_state= self.GAME_STATE[0]
 
         self._initialize_pieces()
         self._initialize_start_position()
@@ -459,113 +470,7 @@ class ChessBoard:
 
             return allowed_moves
 
-        return allowed_moves            
-
-    def get_rook_moves(self, piece):
-            color = self.get_color(piece)
-            square= self.pieceSquare[piece]
-            allowed_moves=[]
-
-            # -----------------
-            # LEFT (file -1)
-            # -----------------
-            cpt = square - 1
-            while cpt >= 0 and cpt // 8 == square // 8:
-                if self.squarePiece[cpt] == -1:
-                    allowed_moves.append(cpt)
-                else:
-                    if self.get_color(self.squarePiece[cpt]) != color:
-                        allowed_moves.append(cpt)
-                    break
-                cpt -= 1
-
-            # -----------------
-            # RIGHT (file +1)
-            # -----------------
-            cpt = square + 1
-            while cpt < 64 and cpt // 8 == square // 8:
-                if self.squarePiece[cpt] == -1:
-                    allowed_moves.append(cpt)
-                else:
-                    if self.get_color(self.squarePiece[cpt]) != color:
-                        allowed_moves.append(cpt)
-                    break
-                cpt += 1
-
-            # -----------------
-            # UP (rank +1)
-            # -----------------
-            cpt = square + 8
-            while cpt < 64:
-                if self.squarePiece[cpt] == -1:
-                    allowed_moves.append(cpt)
-                else:
-                    if self.get_color(self.squarePiece[cpt]) != color:
-                        allowed_moves.append(cpt)
-                    break
-                cpt += 8
-
-            # -----------------
-            # DOWN (rank -1)
-            # -----------------
-            cpt = square - 8
-            while cpt >= 0:
-                if self.squarePiece[cpt] == -1:
-                    allowed_moves.append(cpt)
-                else:
-                    if self.get_color(self.squarePiece[cpt]) != color:
-                        allowed_moves.append(cpt)
-                    break
-                cpt -= 8
-            return allowed_moves
-        
-                
-    def get_bishop_moves(self, piece_id):
-        allowed_moves = []
-
-        square = self.pieceSquare[piece_id]
-        row = square // 8
-        col = square % 8
-        color = self.pieceColor[piece_id]
-
-        # 4 diagonal directions
-        directions = [
-            (1, 1),    # down-right
-            (1, -1),   # down-left
-            (-1, 1),   # up-right
-            (-1, -1)   # up-left
-        ]
-
-        for dr, dc in directions:
-            r = row + dr
-            c = col + dc
-
-            # ray trace until blocked
-            while 0 <= r < 8 and 0 <= c < 8:
-                target = r * 8 + c
-                target_piece = self.squarePiece[target]
-
-                if target_piece == -1:
-                    allowed_moves.append(target)
-                else:
-                    # capture if enemy
-                    if self.pieceColor[target_piece] != color:
-                        allowed_moves.append(target)
-                    break  # stop ray after hitting piece
-
-                r += dr
-                c += dc
-
         return allowed_moves
-    def checkmate(self, turn):
-        king= self.WHITE_KING if turn== self.WHITE else self.BLACK_KING
-        if self.in_check() and self.get_pseudo_moves(king) == [] and True:
-            ## TODO!: missing the getting piece to block forced Check
-            return True
-        else:
-            #TODO: the restricted set of moves that can be played
-            return False
-            
         
     def is_square_attacked(self, square, color):
         pair= self.get_coordinates(square)
@@ -694,18 +599,6 @@ class ChessBoard:
                 if(self.pieceSquare[i]!=-1):
                     pieces.append(i)
         return pieces
-                
-    def exists(self, piece_type, color):
-        for piece_id in range(32):
-            if self.pieceSquare[piece_id] == -1:
-                continue
-
-            if self.pieceType[piece_id] == piece_type and \
-            self.pieceColor[piece_id] == color:
-                return True
-
-        return False
-    
     
     def get_checkers(self, color):
 
@@ -827,3 +720,27 @@ class ChessBoard:
 
         ray_squares.append(attacker_square)
         return ray_squares
+    
+    def get_pin(self, attacker_id, defender_color):
+        rays= self.get_blocking_squares(attacker_id, defender_color)
+        is_unique= None
+        
+        for square in rays:
+            piece= self.squarePiece[square]
+            
+            if piece == -1:
+                continue
+
+            if piece == attacker_id:
+                continue
+            
+            
+            target_color= self.get_color(piece)
+            if not is_unique and target_color == defender_color:
+                is_unique=self.squarePiece[square]
+            elif is_unique and target_color == defender_color:
+                return None
+        return None if is_unique==None else {
+            "piece": is_unique,
+            "ray": rays
+        }
