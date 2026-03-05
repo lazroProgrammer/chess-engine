@@ -177,7 +177,7 @@ class ChessBoard:
         
     
     def move_piece(self, piece_id, to_square):
-        print(self.enPassantSquare)    
+        # print(self.enPassantSquare)    
         self.enPassantSquare= None
         
         if( self.get_type(piece_id)== self.PAWN and abs(self.pieceSquare[piece_id] - to_square)==16):
@@ -219,7 +219,7 @@ class ChessBoard:
         self.squarePiece[from_square] = -1
         self.squarePiece[to_square] = piece_id
         self.pieceSquare[piece_id] = to_square        
-
+        
         return captured_piece
     
         # ==============================
@@ -322,7 +322,7 @@ class ChessBoard:
             cpt+=1
             line+=f"{self.cast_pieces(i)} "
             if(cpt % 8 == 0):
-                print(f"{line}")
+                # print(f"{line}")
                 line=""
     def get_pseudo_moves(self, piece_id):
         allowed_moves = []
@@ -638,14 +638,63 @@ class ChessBoard:
                 return pseudo_moves 
             elif(len(king_attackers)== 1):
                 ray= self.get_blocking_squares(king_attackers[0], defender_color)
-                print(ray)
+                # print(ray)
                 return [e for e in ray if e in pseudo_moves]
             else:
                 return []
                 
+    def is_checkmate(self, color):
+        """
+        Returns True if the player of `color` is in checkmate.
+        """
+        # 1️⃣ Get all checkers attacking the king
+        checkers = self.get_checkers(color)
+
+        # 2️⃣ If the king is not in check, it's not checkmate
+        if not checkers:
+            return False
+
+        # 3️⃣ Check if there are any legal moves for this color
+        for piece in self.get_pieces_by_color(color):
+            moves = self.get_legal_moves(piece, color)
+            if moves:  # at least one legal move exists
+                return False
+
+        # ✅ No legal moves and king in check → checkmate
+        return True
+
+
+    def is_stalemate(self, color):
+        """
+        Returns True if the player of `color` is in stalemate.
+        """
+        # 1️⃣ King is not in check
+        checkers = self.get_checkers(color)
+        if checkers:
+            return False
+
+        # 2️⃣ If there are any legal moves, it's not stalemate
+        for piece in self.get_pieces_by_color(color):
+            moves = self.get_legal_moves(piece, color)
+            if moves:  # at least one legal move exists
+                return False
+
+        # ✅ No legal moves and king not in check → stalemate
+        return True
         
         
-        
+    def get_pieces_by_color(self, color):
+        pieces=[]
+        if (color== self.WHITE):
+            for i in range(15,-1,-1):
+                if(self.pieceSquare[i]!=-1):
+                    pieces.append(i)
+        if (color== self.BLACK):
+            for i in range(31,15,-1):
+                if(self.pieceSquare[i]!=-1):
+                    pieces.append(i)
+        return pieces
+                
     def exists(self, piece_type, color):
         for piece_id in range(32):
             if self.pieceSquare[piece_id] == -1:

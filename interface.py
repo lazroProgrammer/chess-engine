@@ -154,6 +154,16 @@ def main():
                             board.move_piece(selected_piece, square)
                             selected_piece = None
                             allowed_moves = []
+                            if(game.side_to_move== board.WHITE):
+                                if board.is_checkmate(board.BLACK):
+                                    print("White wins by checkmate!")
+                                elif board.is_stalemate(board.BLACK):
+                                    print("Stalemate!")
+                            if(game.side_to_move== board.BLACK):
+                                if board.is_checkmate(board.WHITE):
+                                    print("Black wins by checkmate!")
+                                elif board.is_stalemate(board.WHITE):
+                                    print("Stalemate!")
                             game.side_to_move = board.BLACK if game.side_to_move == board.WHITE else board.WHITE
                             if(MODE=="flip"):
                                 flip_board= not flip_board
