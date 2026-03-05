@@ -58,7 +58,7 @@ class ChessBoard:
         # Game state
         self.sideToMove = ChessBoard.WHITE
         self.castlingRights = 0b1111  # WQ WK BQ BK
-        self.enPassantSquare = -1
+        self.enPassantSquare = None
         self.halfmoveClock = 0
         self.fullmoveNumber = 1
 
@@ -177,6 +177,12 @@ class ChessBoard:
         
     
     def move_piece(self, piece_id, to_square):
+        print(self.enPassantSquare)    
+        self.enPassantSquare= None
+        
+        if( self.get_type(piece_id)== self.PAWN and abs(self.pieceSquare[piece_id] - to_square)==16):
+            self.enPassantSquare= to_square
+        
         if(piece_id == self.WHITE_KING):
             self.castlingRights &= 0b0011
         elif(piece_id == self.BLACK_KING):
@@ -212,7 +218,7 @@ class ChessBoard:
         # Move piece
         self.squarePiece[from_square] = -1
         self.squarePiece[to_square] = piece_id
-        self.pieceSquare[piece_id] = to_square
+        self.pieceSquare[piece_id] = to_square        
 
         return captured_piece
     
@@ -376,7 +382,12 @@ class ChessBoard:
 
                     if target_piece != -1 and self.pieceColor[target_piece] != color:
                         allowed_moves.append(target)    
-
+                    if self.enPassantSquare:
+                        target_piece = self.squarePiece[self.enPassantSquare]
+                        enpassant_coordinates= self.get_coordinates(self.enPassantSquare)
+                        if target_piece != -1 and self.pieceColor[target_piece] != color  and abs(new_col - enpassant_coordinates[1]) == 0 and abs(new_row - enpassant_coordinates[0]) == 1:
+                            allowed_moves.append(target)    
+                            
             return allowed_moves
 
         # -------------------------
