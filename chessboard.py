@@ -72,6 +72,11 @@ class ChessBoard:
         self.fullmoveNumber = 1
         
         self.game_state= self.GAME_STATE[0]
+        
+        self.pinned_pieces={
+            self.WHITE:{},
+            self.BLACK:{},
+        }
 
         self._initialize_pieces()
         self._initialize_start_position()
@@ -494,10 +499,9 @@ class ChessBoard:
                     if(self.get_type(potentiel_piece)== piece_type and self.pieceColor[potentiel_piece]  == opposite_color):
                         return True
         for piece_type in offsets_increments.keys():
-            if(self.exists(piece_type, opposite_color)):
-                for piece in self.get_pieces(piece_type, opposite_color):
-                    if(square in self.get_pseudo_moves(piece)):
-                        return True
+            for piece in self.get_pieces(piece_type, opposite_color):
+                if(square in self.get_pseudo_moves(piece)):
+                    return True
         return False   
               
     def get_pieces(self, piece_type=None, color=None, only_alive=True):
@@ -539,6 +543,9 @@ class ChessBoard:
         else:
             king= self.WHITE_KING if defender_color== self.WHITE else self.BLACK_KING
             king_attackers=self.get_checkers(defender_color)
+            if(piece_id in self.pinned_pieces[defender_color].keys()):
+                target_pin= self.pinned_pieces[defender_color][piece_id]
+                return [e for e in pseudo_moves if e in target_pin]
             if(len(king_attackers) == 0):
                 return pseudo_moves 
             elif(len(king_attackers)== 1):
@@ -547,7 +554,7 @@ class ChessBoard:
                 return [e for e in ray if e in pseudo_moves]
             else:
                 return []
-                
+            
     def is_checkmate(self, color):
         """
         Returns True if the player of `color` is in checkmate.
@@ -690,6 +697,7 @@ class ChessBoard:
             List of squares along the ray between the king and the attacker, 
             including the attacker's square. For pawns/knights, returns only the attacker's square.
         """
+
         king_id = self.WHITE_KING if defender_color == self.WHITE else self.BLACK_KING
         king_square = self.pieceSquare[king_id]
         attacker_square = self.pieceSquare[attacker_id]
@@ -699,48 +707,95 @@ class ChessBoard:
         if attacker_type in (self.PAWN, self.KNIGHT):
             return [attacker_square]
 
-        # For sliding pieces, compute ray
         kr, kc = self.get_coordinates(king_square)
         ar, ac = self.get_coordinates(attacker_square)
 
-        dr = (ar - kr)
-        dc = (ac - kc)
+        dr_raw = ar - kr
+        dc_raw = ac - kc
 
-        # Normalize direction to -1, 0, or 1
-        dr = (dr > 0) - (dr < 0)
-        dc = (dc > 0) - (dc < 0)
+        # Ensure attacker is aligned with king
+        if not (
+            dr_raw == 0 or
+            dc_raw == 0 or
+            abs(dr_raw) == abs(dc_raw)
+        ):
+            return []
 
-        # Collect squares along the ray (excluding king, include attacker)
+        # Normalize direction
+        dr = (dr_raw > 0) - (dr_raw < 0)
+        dc = (dc_raw > 0) - (dc_raw < 0)
+
         r, c = kr + dr, kc + dc
         ray_squares = []
+
+        # Walk along ray
         while (r, c) != (ar, ac):
+
+            # Safety boundary check
+            if not (0 <= r < 8 and 0 <= c < 8):
+                return []
+
             ray_squares.append(self.get_square((r, c)))
             r += dr
             c += dc
 
         ray_squares.append(attacker_square)
         return ray_squares
-    
+
+
     def get_pin(self, attacker_id, defender_color):
-        rays= self.get_blocking_squares(attacker_id, defender_color)
-        is_unique= None
-        
+
+        rays = self.get_blocking_squares(attacker_id, defender_color)
+
+        if not rays:
+            return None
+
+        is_unique = None
+
         for square in rays:
-            piece= self.squarePiece[square]
-            
+
+            piece = self.squarePiece[square]
+
             if piece == -1:
                 continue
 
             if piece == attacker_id:
                 continue
-            
-            
-            target_color= self.get_color(piece)
+
+            target_color = self.get_color(piece)
+
             if not is_unique and target_color == defender_color:
-                is_unique=self.squarePiece[square]
+                is_unique = piece
+
             elif is_unique and target_color == defender_color:
                 return None
-        return None if is_unique==None else {
+
+        return None if is_unique is None else {
             "piece": is_unique,
             "ray": rays
         }
+
+
+    def get_sliders(self, color):
+
+        if color == self.WHITE:
+            return [8, 9, 12, 13, 14]
+        else:
+            return [24, 25, 28, 29, 30]
+
+
+    def get_pinned_pieces(self, color):
+
+        attacker_color = self.WHITE if color == self.BLACK else self.BLACK
+        pieces = self.get_sliders(attacker_color)
+
+        pins = {}
+
+        for piece in pieces:
+
+            pinned = self.get_pin(piece, color)
+
+            if pinned:
+                pins[pinned["piece"]] = pinned["ray"]
+
+        self.pinned_pieces[color] = pins

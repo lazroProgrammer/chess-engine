@@ -152,6 +152,7 @@ def main():
                     else:
                         if square in allowed_moves:
                             board.move_piece(selected_piece, square)
+                            board.get_pinned_pieces(board.BLACK if game.side_to_move== board.WHITE else board.WHITE)
                             selected_piece = None
                             allowed_moves = []
                             if(game.side_to_move== board.WHITE):
