@@ -69,6 +69,7 @@ class ChessBoard:
         self.castlingRights = 0b1111  # WQ WK BQ BK
         self.enPassantSquare = None
         self.halfmoveClock = 0
+        self._50move_halfmoves_clock= 0
         self.fullmoveNumber = 1
         
         self.game_state= self.GAME_STATE[0]
@@ -193,9 +194,13 @@ class ChessBoard:
         
     
     def move_piece(self, piece_id, to_square):
+        ''' this function is used to permanently move a piece '''
         # print(self.enPassantSquare)    
         self.enPassantSquare= None
-        
+        if( self.get_type(piece_id)== self.PAWN ):
+            self._50move_halfmoves_clock+=1
+        else:
+            self._50move_halfmoves_clock=0
         if( self.get_type(piece_id)== self.PAWN and abs(self.pieceSquare[piece_id] - to_square)==16):
             self.enPassantSquare= to_square
         
@@ -799,3 +804,74 @@ class ChessBoard:
                 pins[pinned["piece"]] = pinned["ray"]
 
         self.pinned_pieces[color] = pins
+        
+    def has_any_legal_move(self, color):
+        """
+        Returns True as soon as ONE legal move is found for the given color.
+        Vastly faster than computing all possible legal moves.
+        """
+        for piece in self.get_pieces_by_color(color):
+            if len(self.get_legal_moves(piece, color)) > 0:
+                return True
+        return False
+    def has_insufficient_material(self):
+        """
+        Checks if the remaining pieces on the board are insufficient to force a checkmate.
+        """
+        alive_pieces = [p for p in range(32) if self.pieceSquare[p] != -1]
+        
+        # King vs King
+        if len(alive_pieces) == 2:
+            return True
+            
+        # King and Minor Piece vs King
+        if len(alive_pieces) == 3:
+            for p in alive_pieces:
+                ptype = self.pieceType[p]
+                if ptype in (self.KNIGHT, self.BISHOP):
+                    return True
+                    
+        # (Optional) You can add K+B vs K+B of the same square color here if you want to be exhaustive
+        
+        return False
+    
+    def update_game_state(self, current_color):
+        """
+        Evaluates the board and updates self.game_state.
+        Should be called at the end of every move.
+        """
+        
+        # 1. Check 50-Move Rule (halfmoveClock reaches 100)
+        if self._50move_halfmoves_clock >= 100:
+            self.game_state = self.GAME_STATE[3]
+            return
+            
+        # 2. Check Insufficient Material
+        if self.has_insufficient_material():
+            self.game_state = self.GAME_STATE[5]
+            
+            return
+            
+        # 3. Check Threefold Repetition
+        # (Note: You will need to maintain a history of board positions/hashes to check this)
+        # if self.is_threefold_repetition():
+        #     self.game_state = self.GAME_STATE[4]
+        #     return
+
+        # 4. Check for Checkmate or Stalemate
+        # We compute checkers exactly ONCE here
+        checkers = self.get_checkers(current_color)
+        is_in_check = len(checkers) > 0
+        
+        # We compute pinned pieces once for the legal move generator
+        self.get_pinned_pieces(current_color)
+        if not self.has_any_legal_move(current_color):
+            if is_in_check:
+                self.game_state = self.GAME_STATE[1]
+            else:
+                self.game_state = self.GAME_STATE[2]
+            return
+
+        # If we reach here, the game is still going!
+        self.game_state = self.GAME_STATE[0]
+        

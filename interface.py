@@ -153,17 +153,26 @@ def main():
                         if square in allowed_moves:
                             board.move_piece(selected_piece, square)
                             board.get_pinned_pieces(board.BLACK if game.side_to_move== board.WHITE else board.WHITE)
+                            board.update_game_state(board.WHITE if game.side_to_move == board.BLACK else board.BLACK)
                             selected_piece = None
                             allowed_moves = []
+                            # game state logs
+                            print(board.game_state)
+                            if(board.game_state == board.GAME_STATE[3]):
+                                print("draw by 50 move Rule")
+                            elif(board.game_state == board.GAME_STATE[4]):
+                                print("draw by repetition")
+                            elif(board.game_state == board.GAME_STATE[5]):
+                                print("draw by insufficient materials")
                             if(game.side_to_move== board.WHITE):
-                                if board.is_checkmate(board.BLACK):
+                                if board.game_state == board.GAME_STATE[1] :
                                     print("White wins by checkmate!")
-                                elif board.is_stalemate(board.BLACK):
+                                elif board.game_state == board.GAME_STATE[2]:
                                     print("Stalemate!")
                             if(game.side_to_move== board.BLACK):
-                                if board.is_checkmate(board.WHITE):
+                                if board.game_state == board.GAME_STATE[1]:
                                     print("Black wins by checkmate!")
-                                elif board.is_stalemate(board.WHITE):
+                                elif board.game_state == board.GAME_STATE[2]:
                                     print("Stalemate!")
                             game.side_to_move = board.BLACK if game.side_to_move == board.WHITE else board.WHITE
                             if(MODE=="flip"):
@@ -187,10 +196,18 @@ def main():
         render_surface.fill((0, 0, 0))
 
         draw_board(render_surface, flip_board)
+        
+        if not selected_piece== board.WHITE_KING and board.get_checkers(board.WHITE):
+            checked_king(render_surface, board.pieceSquare[board.WHITE_KING], SQUARE)
+            
+        if not selected_piece== board.BLACK_KING and board.get_checkers(board.BLACK):
+            checked_king(render_surface, board.pieceSquare[board.BLACK_KING], SQUARE)
         draw_pieces(render_surface, board, images, flip_board)
         if selected_piece is not None:
             draw_selected_square(render_surface, board.pieceSquare[selected_piece], flip_board)
+                
         draw_allowed_moves(render_surface, allowed_moves, flip_board)
+            
         if invalid_animation:
             invalid_animation.draw(render_surface, SQUARE)
 
@@ -199,6 +216,15 @@ def main():
 
     pygame.quit()
 
+
+def checked_king(screen, square, square_size):
+    overlay = pygame.Surface((square_size, square_size), pygame.SRCALPHA)
+    overlay.fill((255, 0, 0, 200))
+
+    row = square // 8
+    col = square % 8
+
+    screen.blit(overlay, (col * square_size, row * square_size))
 
 if __name__ == "__main__":
     main()
